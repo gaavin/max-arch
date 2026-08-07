@@ -1,6 +1,6 @@
-diff -ruN a/osu-wine work/osu-wine
+diff -ruN a/osu-wine b/osu-wine
 --- a/osu-wine	2026-07-02 23:14:58.000000000 -0230
-+++ b/osu-wine	2026-08-07 00:52:30.329078813 -0230
++++ b/osu-wine	2026-08-07 01:07:19.813189510 -0230
 @@ -21,13 +21,18 @@
  
  set -a
@@ -48,9 +48,9 @@ diff -ruN a/osu-wine work/osu-wine
      return $? # shouldn't reach this if using exec
  }
  
-diff -ruN a/osu-winello.sh work/osu-winello.sh
+diff -ruN a/osu-winello.sh b/osu-winello.sh
 --- a/osu-winello.sh	2026-07-02 23:14:58.000000000 -0230
-+++ b/osu-winello.sh	2026-08-07 00:52:30.329335763 -0230
++++ b/osu-winello.sh	2026-08-07 01:07:19.813391060 -0230
 @@ -47,6 +47,17 @@
  # The full path to osu-winello.sh
  SCRPATH="$(realpath "$0")"
@@ -88,7 +88,7 @@ diff -ruN a/osu-winello.sh work/osu-winello.sh
  
      Info "Welcome to the script! Follow it to install osu! 8)"
  
-@@ -272,6 +287,33 @@
+@@ -272,6 +287,35 @@
  
  # Function to install script files, yawl and Wine-osu
  InstallWine() {
@@ -109,6 +109,8 @@ diff -ruN a/osu-winello.sh work/osu-winello.sh
 +        echo "$LASTWINEVERSION" >"$XDG_DATA_HOME/osuconfig/wineverupdate"
 +
 +        install -Dm755 /usr/lib/osu-stable/yawl "$XDG_DATA_HOME/osuconfig/yawl"
++        # Handler must live under $HOME so yawl enter / pressure-vessel can see it
++        install -Dm755 "${SCRDIR}/stuff/osu-handler-wine" "$XDG_DATA_HOME/osuconfig/osu-handler-wine"
 +        export YAWL_INSTALL_PATH="$XDG_DATA_HOME/osuconfig/yawl"
 +        export WINE="$XDG_DATA_HOME/osuconfig/yawl-winello"
 +        export WINESERVER="${WINE}server"
@@ -122,7 +124,7 @@ diff -ruN a/osu-winello.sh work/osu-winello.sh
      # Installing game launcher and related...
      Info "Installing game script:"
      cp "${SCRDIR}/osu-wine" "$BINDIR/osu-wine" && chmod +x "$BINDIR/osu-wine"
-@@ -375,7 +417,11 @@
+@@ -375,7 +419,11 @@
          # Downloading prefix in temporary ~/.winellotmp folder
          # to make up for this issue: https://github.com/NelloKudo/osu-winello/issues/36
          mkdir -p "$HOME/.winellotmp"
@@ -135,7 +137,7 @@ diff -ruN a/osu-winello.sh work/osu-winello.sh
  
          # Checking whether to create prefix manually or install it from repos
          if [ "$failprefix" = "true" ]; then
-@@ -537,7 +583,11 @@
+@@ -537,7 +585,11 @@
  
      Info "Downloading prefix.. this might take a while."
      mkdir -p "$HOME/.winellotmp"
@@ -148,7 +150,7 @@ diff -ruN a/osu-winello.sh work/osu-winello.sh
  
      Info "Extracting prefix.."
      tar -xf "$HOME/.winellotmp/osu-winello-prefix.tar.xz" -C "$XDG_DATA_HOME/wineprefixes" || { rm -rf "$HOME/.winellotmp" && return 1; }
-@@ -654,18 +704,24 @@
+@@ -654,18 +706,24 @@
      [ -r "$XDG_DATA_HOME/osuconfig/wineverupdate" ] && LASTWINEVERSION=$(</"$XDG_DATA_HOME/osuconfig/wineverupdate")
  
      if [ "$LASTWINEVERSION" \!= "$WINEVERSION" ]; then
@@ -184,13 +186,13 @@ diff -ruN a/osu-winello.sh work/osu-winello.sh
      else
          Info "Your Wine-osu is already up-to-date!"
      fi
-@@ -939,6 +995,13 @@
+@@ -939,6 +997,13 @@
  osuHandlerSetup() {
      Info "Configuring osu-mime and osu-handler..."
  
 +    if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
-+        chmod +x "$XDG_DATA_HOME/osuconfig/update/stuff/osu-handler-wine" 2>/dev/null || true
-+        waitWine regedit /s "$XDG_DATA_HOME/osuconfig/update/stuff/osu-handler.reg"
++        install -Dm755 "${SCRDIR}/stuff/osu-handler-wine" "$XDG_DATA_HOME/osuconfig/osu-handler-wine"
++        waitWine regedit /s "${SCRDIR}/stuff/osu-handler.reg"
 +        $okay
 +        return 0
 +    fi
@@ -198,3 +200,86 @@ diff -ruN a/osu-winello.sh work/osu-winello.sh
      # Installing osu-mime from https://aur.archlinux.org/packages/osu-mime
      DownloadFile "${OSUMIMELINK}" "/tmp/osu-mime.tar.gz" || return 1
  
+@@ -985,40 +1050,63 @@
+ 
+ # Open files/links with osu-handler-wine
+ osuHandlerHandle() {
+-    local ARG="${*:-}" OSUPID
+-    local -a PRE_ARGS
+-    local HANDLERRUN=("$XDG_DATA_HOME/osuconfig/update/stuff/osu-handler-wine")
+-    [ ! -x "${HANDLERRUN[0]}" ] && chmod +x "${HANDLERRUN[0]}"
++    local ARG="${*:-}" OSUPID HANDLERBIN
++    local -a PRE_ARGS HANDLERRUN
+ 
+-    if [ -x "$YAWL_INSTALL_PATH" ] && OSUPID="$(pgrep osu!.exe)"; then
+-        HANDLERRUN=("env" "YAWL_VERBS=enter=$OSUPID" "$YAWL_INSTALL_PATH" "${HANDLERRUN[0]}")
++    # Prefer a copy under $HOME (visible to yawl enter / pressure-vessel), matching nix-osu-stable
++    HANDLERBIN="$XDG_DATA_HOME/osuconfig/osu-handler-wine"
++    if [ ! -x "$HANDLERBIN" ]; then
++        local src="${WINELLO_ROOT:-$XDG_DATA_HOME/osuconfig/update}/stuff/osu-handler-wine"
++        [ -x "$src" ] || src="$XDG_DATA_HOME/osuconfig/update/stuff/osu-handler-wine"
++        install -Dm755 "$src" "$HANDLERBIN" || {
++            Error "Missing osu-handler-wine"
++            return 1
++        }
++    fi
++
++    if [ -x "$YAWL_INSTALL_PATH" ] && OSUPID="$(pgrep -n 'osu!.exe' 2>/dev/null || true)" && [ -n "$OSUPID" ]; then
++        # Call yawl directly with enter=PID (do not nest steam-run / userns)
++        HANDLERRUN=("env" "YAWL_INSTALL_DIR=$(dirname "$YAWL_INSTALL_PATH")" "YAWL_VERBS=enter=$OSUPID" "$YAWL_INSTALL_PATH" "$HANDLERBIN")
+         echo "Trying to open osu-handler-wine in the running container for osu! (PID=$OSUPID)" >&2
+     else
+         IFS=" " read -r -a PRE_ARGS <<<"env ${PRE_LAUNCH_ARGS}"
+-        HANDLERRUN=("${PRE_ARGS[@]}" "${WINE}") # we don't actually need osu-handler if we're starting a new instance
++        HANDLERRUN=("${PRE_ARGS[@]}" "${WINE}")
+         echo "Trying to open a new instance of osu! to handle ${ARG}" >&2
+     fi
+ 
+     case "$ARG" in
+     osu://*)
+         echo "Trying to load link ($ARG).." >&2
+-        exec "${HANDLERRUN[@]}" 'C:\\windows\\system32\\start.exe' "$ARG"
++        cd "$HOME"
++        exec "${HANDLERRUN[@]}" 'C:\windows\system32\start.exe' "$ARG"
+         ;;
+     *.osr | *.osz | *.osk | *.osz2)
+-        local EXT="${ARG##*.}" FULLARGPATH FILEDIR
+-        FULLARGPATH="$(realpath "${ARG}")" || FULLARGPATH="${ARG}" # || for fallback if realpath failed
+-
+-        # also, add the containing directory to the PRESSURE_VESSEL_FILESYSTEMS_RW, because it might be in some other location
+-        FILEDIR="$(realpath "$(dirname "${FULLARGPATH}")")"
+-        if [ -n "${FILEDIR}" ] && [ "${FILEDIR}" != "/" ]; then
+-            export PRESSURE_VESSEL_FILESYSTEMS_RW="${PRESSURE_VESSEL_FILESYSTEMS_RW}:${FILEDIR}"
++        local EXT="${ARG##*.}" FULLARGPATH OSUPATH base staged winefile
++        FULLARGPATH="$(realpath "${ARG}" 2>/dev/null || true)"
++        FULLARGPATH="${FULLARGPATH:-$ARG}"
++
++        # Stage onto the game drive (D:) so osu!'s MoveFile is same-volume.
++        # Opening from Z:\...\Downloads often yields "Error moving file" under Wine.
++        if [ -r "$XDG_DATA_HOME/osuconfig/osupath" ]; then
++            OSUPATH="$(<"$XDG_DATA_HOME/osuconfig/osupath")"
++        else
++            OSUPATH="${OSUPATH:-$XDG_DATA_HOME/osu-wine/osu!}"
+         fi
+-
+-        echo "Trying to load file ($FULLARGPATH).." >&2
+-        exec "${HANDLERRUN[@]}" 'C:\\windows\\system32\\start.exe' "/ProgIDOpen" "osustable.File.$EXT" "$FULLARGPATH"
++        [ -f "$FULLARGPATH" ] || {
++            Error "File not found: $FULLARGPATH"
++            return 1
++        }
++        mkdir -p "$OSUPATH/.handler-import"
++        base="$(basename "$FULLARGPATH")"
++        staged="$OSUPATH/.handler-import/$base"
++        cp -f "$FULLARGPATH" "$staged"
++        winefile="D:\\.handler-import\\$base"
++
++        echo "Trying to load file ($FULLARGPATH -> $winefile).." >&2
++        cd "$HOME"
++        exec "${HANDLERRUN[@]}" 'C:\windows\system32\start.exe' "/ProgIDOpen" "osustable.File.$EXT" "$winefile"
+         ;;
+     esac
+-    # If we reached here, it must means osu-handler failed/none of the cases matched
+     Error "Unsupported osu! file ($ARG) !" >&2
+     Error "Try running \"bash $SCRPATH fixosuhandler\" !" >&2
+     return 1

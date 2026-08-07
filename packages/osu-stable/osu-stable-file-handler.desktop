@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=osu! (stable handler)
-MimeType=application/x-osu-skin-archive;application/x-osu-replay;application/x-osu-beatmap-archive;
+MimeType=application/x-osu-skin-archive;application/x-osu-replay;application/x-osu-beatmap-archive;application/x-osu-beatmap;
 Exec=/usr/bin/osu-stable --osuhandler %f
 NoDisplay=true
 StartupNotify=true

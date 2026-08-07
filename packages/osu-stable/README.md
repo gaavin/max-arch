@@ -15,6 +15,9 @@ osu-stable
 
 First run sets up the prefix and installs osu!. Config: `~/.local/share/osuconfig/configs/`.
 
+Beatmap / skin / replay files and `osu://` links reuse a running game when possible.
+Imports are staged under the game drive (same fix as [nix-osu-stable](https://github.com/gaavin/nix-osu-stable)) so Wine can move them into Songs.
+
 ## Credits
 
 - [NelloKudo/osu-winello](https://github.com/NelloKudo/osu-winello) — installer, launcher, handlers, and packaging approach this package is based on

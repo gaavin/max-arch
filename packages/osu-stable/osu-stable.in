@@ -24,6 +24,12 @@ elif [ -d "$XDG_DATA_HOME/osuconfig/update/.git" ]; then
   ln -sfn "$WINELLO_ROOT" "$XDG_DATA_HOME/osuconfig/update"
 fi
 
+# Keep a home-local handler binary (pressure-vessel / yawl enter can see $HOME)
+if [ ! -x "$XDG_DATA_HOME/osuconfig/osu-handler-wine" ]; then
+  install -Dm755 "$WINELLO_ROOT/stuff/osu-handler-wine" \
+    "$XDG_DATA_HOME/osuconfig/osu-handler-wine" 2>/dev/null || true
+fi
+
 winello_needs_setup() {
   [ ! -r "$XDG_DATA_HOME/wineprefixes/osu-wineprefix/system.reg" ] && return 0
   [ ! -r "$XDG_DATA_HOME/osuconfig/osupath" ] && return 0
@@ -37,6 +43,18 @@ if winello_needs_setup; then
     echo -e '\033[1;31mWinello:\033[0m Setup failed.' >&2
     exit 1
   fi
+fi
+
+is_osu_handler_arg() {
+  case "${1:-}" in
+    osu://* | *.osr | *.osz | *.osk | *.osz2) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Bare file/URL args → handler path (desktop entries use --osuhandler explicitly)
+if [ "${1:-}" != "--osuhandler" ] && is_osu_handler_arg "${1:-}"; then
+  set -- --osuhandler "$@"
 fi
 
 exec bash "$WINELLO_ROOT/osu-wine" "$@"
