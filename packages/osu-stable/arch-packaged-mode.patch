@@ -1,6 +1,6 @@
-diff -ruN a/osu-wine b/osu-wine
---- a/osu-wine	2026-08-07 00:14:46.153521110 -0230
-+++ b/osu-wine	2026-08-07 00:14:46.154967770 -0230
+diff -ruN a/osu-wine work/osu-wine
+--- a/osu-wine	2026-07-02 23:14:58.000000000 -0230
++++ b/osu-wine	2026-08-07 00:52:30.329078813 -0230
 @@ -21,13 +21,18 @@
  
  set -a
@@ -48,9 +48,9 @@ diff -ruN a/osu-wine b/osu-wine
      return $? # shouldn't reach this if using exec
  }
  
-diff -ruN a/osu-winello.sh b/osu-winello.sh
---- a/osu-winello.sh	2026-08-07 00:14:46.154298280 -0230
-+++ b/osu-winello.sh	2026-08-07 00:14:46.155607130 -0230
+diff -ruN a/osu-winello.sh work/osu-winello.sh
+--- a/osu-winello.sh	2026-07-02 23:14:58.000000000 -0230
++++ b/osu-winello.sh	2026-08-07 00:52:30.329335763 -0230
 @@ -47,6 +47,17 @@
  # The full path to osu-winello.sh
  SCRPATH="$(realpath "$0")"
@@ -69,10 +69,13 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  # Exported global variables
  
  export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-@@ -212,8 +223,10 @@
+@@ -209,11 +220,15 @@
+ # Function looking for basic stuff needed for installation
+ InitialSetup() {
+     # Better to not run the script as root, right?
 -    if [ "$USER" = "root" ]; then InstallError "Please run the script without root"; fi
 +    if [ "$(id -u)" -eq 0 ] || [ "$USER" = "root" ]; then
-+        InstallError "Please run as your normal user — never as root/sudo"
++        InstallError "Please run as your normal user - never as root/sudo"
 +    fi
  
      # Checking for previous versions of osu-wine (mine or DiamondBurned's)
@@ -85,7 +88,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
      Info "Welcome to the script! Follow it to install osu! 8)"
  
-@@ -272,6 +285,29 @@
+@@ -272,6 +287,33 @@
  
  # Function to install script files, yawl and Wine-osu
  InstallWine() {
@@ -119,7 +122,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
      # Installing game launcher and related...
      Info "Installing game script:"
      cp "${SCRDIR}/osu-wine" "$BINDIR/osu-wine" && chmod +x "$BINDIR/osu-wine"
-@@ -375,7 +411,11 @@
+@@ -375,7 +417,11 @@
          # Downloading prefix in temporary ~/.winellotmp folder
          # to make up for this issue: https://github.com/NelloKudo/osu-winello/issues/36
          mkdir -p "$HOME/.winellotmp"
@@ -132,7 +135,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
          # Checking whether to create prefix manually or install it from repos
          if [ "$failprefix" = "true" ]; then
-@@ -537,7 +577,11 @@
+@@ -537,7 +583,11 @@
  
      Info "Downloading prefix.. this might take a while."
      mkdir -p "$HOME/.winellotmp"
@@ -145,7 +148,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
      Info "Extracting prefix.."
      tar -xf "$HOME/.winellotmp/osu-winello-prefix.tar.xz" -C "$XDG_DATA_HOME/wineprefixes" || { rm -rf "$HOME/.winellotmp" && return 1; }
-@@ -654,18 +698,24 @@
+@@ -654,18 +704,24 @@
      [ -r "$XDG_DATA_HOME/osuconfig/wineverupdate" ] && LASTWINEVERSION=$(</"$XDG_DATA_HOME/osuconfig/wineverupdate")
  
      if [ "$LASTWINEVERSION" \!= "$WINEVERSION" ]; then
@@ -181,7 +184,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
      else
          Info "Your Wine-osu is already up-to-date!"
      fi
-@@ -939,6 +989,13 @@
+@@ -939,6 +995,13 @@
  osuHandlerSetup() {
      Info "Configuring osu-mime and osu-handler..."
  
