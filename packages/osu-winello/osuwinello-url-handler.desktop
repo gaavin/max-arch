@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=osu! (winello URL handler)
+MimeType=x-scheme-handler/osu;
+Exec=/usr/bin/osu-wine --osuhandler %u
+NoDisplay=true
+StartupNotify=true
+Icon=osu-wine

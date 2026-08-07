@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Arch packaging wrapper for osu-winello
+export WINELLO_PACKAGED=1
+export WINELLO_ROOT="${WINELLO_ROOT:-/usr/share/osu-winello}"
+export WINE_INSTALL_PATH="${WINE_INSTALL_PATH:-/opt/wine-osu}"
+export YAWL_INSTALL_PATH="${YAWL_INSTALL_PATH:-/usr/lib/osu-winello/yawl}"
+export WINE="${WINE:-/usr/lib/osu-winello/yawl-winello}"
+export WINESERVER="${WINESERVER:-${WINE}server}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+# Keep a stable "update" tree for upstream script assumptions (read-only package tree).
+mkdir -p "$XDG_DATA_HOME/osuconfig"
+if [ ! -e "$XDG_DATA_HOME/osuconfig/update" ]; then
+  ln -sfn "$WINELLO_ROOT" "$XDG_DATA_HOME/osuconfig/update"
+elif [ -d "$XDG_DATA_HOME/osuconfig/update/.git" ]; then
+  # Prefer packaged scripts over an old git clone from a manual install.
+  rm -rf "$XDG_DATA_HOME/osuconfig/update"
+  ln -sfn "$WINELLO_ROOT" "$XDG_DATA_HOME/osuconfig/update"
+fi
+
+exec bash "$WINELLO_ROOT/osu-wine" "$@"

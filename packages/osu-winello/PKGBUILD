@@ -1,0 +1,159 @@
+# Maintainer: Max Power <me@gavinpower.dev>
+# Upstream: https://github.com/NelloKudo/osu-winello
+#
+# Split packages:
+#   wine-osu-winello   — patched wine-osu (wow64) → /opt/wine-osu
+#   osu-winello-prefix — prebuilt Wineprefix template
+#   osu-winello        — launcher, yawl, MIME/handlers, setup scripts
+
+pkgbase=osu-winello
+pkgname=(
+  osu-winello
+  wine-osu-winello
+  osu-winello-prefix
+)
+pkgver=11.12.1
+pkgrel=1
+pkgdesc='osu! stable on Linux via winello (patched wine-osu + yawl)'
+arch=(x86_64)
+url='https://github.com/NelloKudo/osu-winello'
+license=('GPL-3.0-or-later' 'LGPL-2.1-or-later')
+options=(!strip)
+
+# Upstream wine-osu tag (MAJOR.MINOR-PATCH) → pkgver with dots
+_wine_tag=11.12-1
+_yawl_ver=0.8.2
+_winello_commit=c7dde4db31889c037d63d9de1722725423de8bf6
+
+source=(
+  "osu-winello-${_winello_commit}.tar.gz::https://github.com/NelloKudo/osu-winello/archive/${_winello_commit}.tar.gz"
+  "wine-osu-winello-fonts-wow64-${_wine_tag}-x86_64.tar.xz::https://github.com/NelloKudo/WineBuilder/releases/download/wine-osu-staging-${_wine_tag}/wine-osu-winello-fonts-wow64-${_wine_tag}-x86_64.tar.xz"
+  "yawl-${_yawl_ver}::https://github.com/whrvt/yawl/releases/download/v${_yawl_ver}/yawl"
+  "osu-winello-prefix.tar.xz::https://github.com/NelloKudo/osu-winello/releases/download/winello-bins/osu-winello-prefix.tar.xz"
+  "osu-mime.tar.gz::https://github.com/NelloKudo/osu-winello/releases/download/winello-bins/osu-mime.tar.gz"
+  'osu-wine.desktop'
+  'osu-winello.install'
+  'arch-packaged-mode.patch'
+  'osu-wine.in'
+  'osu-winello.in'
+  'osuwinello-file-extensions-handler.desktop'
+  'osuwinello-url-handler.desktop'
+)
+noextract=(
+  'osu-winello-prefix.tar.xz'
+  'osu-mime.tar.gz'
+  "yawl-${_yawl_ver}"
+)
+sha256sums=(
+  '240eb6df455fdab7ca1816171d02108a108a894f91738a534aee17037310f881'
+  'ff84811432f8230fa5b1aaa52c12321fa06c949e33e6b862e37743f9eba7b708'
+  'bb8728d3ee8644d286324cff43cf8eee4c80fd95ead43229298706c2780f0e12'
+  '009cfe18c144e16348b1aa7e3b561c793235a8591fb0b2affa5a2acea7682743'
+  '8b7b562ce3a196e18b0e7c07518209b41ee74ce5af0473c9528777ebdd05cac5'
+  'bc8f40f669cd0c3c66c257c28fb8ab52821051726674fa46bacbdcbebca29658'
+  '8442031bfb49dad7b894c4050ccaa461594fc7d97ccdca41ea0b768957016237'
+  '91b86d56ffb80a03842e0ff67439d6fd2cb4950d064667b9b5c35d64f44395eb'
+  '0626d124085e711d19343f7ed90ff15fb0c051c7b7aa90dd67a044a7b9b84705'
+  '761fcb7278a25f0d23482f36984567b8e259b89e224876f127a8a81c143ce1dd'
+  'bf226dcd84d65f6638184c1f391bd6f1eecb832827dc5815c38b1e9ba9cc336c'
+  '00b2923d70ab94796b159258bf9690ca5b6412c76ac723b19c40e3a848809432'
+)
+
+prepare() {
+  cd "${srcdir}/osu-winello-${_winello_commit}"
+  patch -Np1 -i "${srcdir}/arch-packaged-mode.patch"
+
+  # Prefer distro cabextract over the vendored static binary.
+  rm -f stuff/cabextract
+
+  chmod +x osu-wine osu-winello.sh stuff/osu-handler-wine stuff/folderfixosu
+}
+
+package_wine-osu-winello() {
+  pkgdesc='Patched wine-osu (wow64) used by osu-winello'
+  depends=()
+  provides=('wine-osu')
+  conflicts=('wine-osu')
+  options=('!strip')
+
+  install -d "${pkgdir}/opt"
+  cp -a "${srcdir}/wine-osu" "${pkgdir}/opt/wine-osu"
+}
+
+package_osu-winello-prefix() {
+  pkgdesc='Prebuilt Wineprefix template for osu-winello'
+  arch=(any)
+  depends=('wine-osu-winello')
+  options=('!strip')
+
+  install -Dm644 "${srcdir}/osu-winello-prefix.tar.xz" \
+    "${pkgdir}/usr/share/osu-winello/osu-winello-prefix.tar.xz"
+}
+
+package_osu-winello() {
+  pkgdesc='osu! stable installer/launcher (winello) with packaged wine-osu and yawl'
+  depends=(
+    'wine-osu-winello'
+    'osu-winello-prefix'
+    'bash'
+    'curl'
+    'wget'
+    'unzip'
+    'zenity'
+    'git'
+    'procps-ng'
+    'coreutils'
+    'cabextract'
+    'xdg-utils'
+    'shared-mime-info'
+    'desktop-file-utils'
+    'xdg-desktop-portal-gtk'
+  )
+  optdepends=(
+    'pipewire: recommended low-latency audio'
+    'winetricks: recreate prefix manually (osu-wine --fixprefix)'
+    'gamemode: set PRE_LAUNCH_ARGS=gamemoderun in config'
+    'mangohud: set PRE_LAUNCH_ARGS=mangohud in config'
+    'opentabletdriver: tablet support'
+  )
+  install=osu-winello.install
+  provides=('osu-mime')
+  conflicts=('osu-mime')
+
+  local _src="${srcdir}/osu-winello-${_winello_commit}"
+  local _share="${pkgdir}/usr/share/osu-winello"
+
+  install -d "${_share}/stuff"
+
+  install -Dm755 "${_src}/osu-winello.sh" "${_share}/osu-winello.sh"
+  install -Dm755 "${_src}/osu-wine" "${_share}/osu-wine"
+
+  install -Dm755 "${_src}/stuff/osu-handler-wine" "${_share}/stuff/osu-handler-wine"
+  install -Dm755 "${_src}/stuff/folderfixosu" "${_share}/stuff/folderfixosu"
+  install -Dm644 "${_src}/stuff/folderfixosu.vbs" "${_share}/stuff/folderfixosu.vbs"
+  install -Dm644 "${_src}/stuff/osu-handler.reg" "${_share}/stuff/osu-handler.reg"
+  install -Dm644 "${_src}/stuff/example.cfg" "${_share}/stuff/example.cfg"
+  install -Dm644 "${_src}/stuff/winello-default.cfg" "${_share}/stuff/winello-default.cfg"
+  install -Dm644 "${_src}/stuff/osu-wine.png" "${_share}/stuff/osu-wine.png"
+
+  install -Dm755 "${srcdir}/yawl-${_yawl_ver}" "${pkgdir}/usr/lib/osu-winello/yawl"
+
+  install -Dm755 "${srcdir}/osu-wine.in" "${pkgdir}/usr/bin/osu-wine"
+  install -Dm755 "${srcdir}/osu-winello.in" "${pkgdir}/usr/bin/osu-winello"
+
+  install -Dm644 "${srcdir}/osu-wine.desktop" \
+    "${pkgdir}/usr/share/applications/osu-wine.desktop"
+  install -Dm644 "${srcdir}/osuwinello-file-extensions-handler.desktop" \
+    "${pkgdir}/usr/share/applications/osuwinello-file-extensions-handler.desktop"
+  install -Dm644 "${srcdir}/osuwinello-url-handler.desktop" \
+    "${pkgdir}/usr/share/applications/osuwinello-url-handler.desktop"
+
+  install -Dm644 "${_src}/stuff/osu-wine.png" \
+    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/osu-wine.png"
+  install -Dm644 "${_src}/stuff/osu-wine.png" \
+    "${pkgdir}/usr/share/pixmaps/osu-wine.png"
+
+  tar -xzf "${srcdir}/osu-mime.tar.gz" -C "${srcdir}"
+  install -Dm644 "${srcdir}/osu-mime/osu-file-extensions.xml" \
+    "${pkgdir}/usr/share/mime/packages/osu-file-extensions.xml"
+}

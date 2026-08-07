@@ -28,19 +28,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build packages inside Arch Linux
+        timeout-minutes: 180
         run: |
           docker run --rm \
             --volume "$PWD:/src" \
             --workdir /src \
             archlinux:base-devel \
             bash -euo pipefail -c '
-              pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd
+              pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd wget curl
               useradd -m -G wheel builder
               echo "%wheel ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
               sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/" /etc/makepkg.conf
+              # Large binary packages (wine-osu / wineprefix)
+              sed -i "s/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -20 -)/" /etc/makepkg.conf || true
               chown -R builder:builder /src
               sudo -u builder bash /src/scripts/build-repo.sh
-              # Keep artifacts readable by the runner user after the container exits.
               chmod -R a+rX /src/repo
             '
 

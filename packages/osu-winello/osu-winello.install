@@ -1,0 +1,33 @@
+post_install() {
+  update-desktop-database -q >/dev/null 2>&1 || true
+  update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+
+  # Create yawl wrapper that points at packaged wine-osu.
+  # Steam Runtime is downloaded later on first user setup / verify (not as root).
+  if [[ -x /usr/lib/osu-winello/yawl && -x /opt/wine-osu/bin/wine ]]; then
+    YAWL_VERBS="make_wrapper=winello;exec=/opt/wine-osu/bin/wine;wineserver=/opt/wine-osu/bin/wineserver" \
+      /usr/lib/osu-winello/yawl >/dev/null 2>&1 || true
+  fi
+
+  cat <<'EOF'
+osu-winello is installed.
+
+First-time setup (as your user, not root):
+  osu-winello
+
+Then launch:
+  osu-wine
+
+Config files live in:
+  ~/.local/share/osuconfig/configs/
+EOF
+}
+
+post_upgrade() {
+  post_install
+}
+
+post_remove() {
+  update-desktop-database -q >/dev/null 2>&1 || true
+  update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+}

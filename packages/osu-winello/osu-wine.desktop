@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=osu!(stable)
+Comment=osu! stable — Rhythm is just a *click* away!
+Type=Application
+Exec=/usr/bin/osu-wine %U
+Icon=osu-wine
+Terminal=false
+Categories=Game;
+StartupWMClass=osu!.exe
+MimeType=x-scheme-handler/osu;application/x-osu-beatmap-archive;application/x-osu-skin-archive;application/x-osu-replay;

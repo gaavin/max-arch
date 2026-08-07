@@ -80,7 +80,25 @@ sudo cp ~/Projects/max-arch/pacman-max-arch.conf /etc/pacman.d/max-arch.conf
 # Include = /etc/pacman.d/max-arch.conf
 ```
 
-## Adding your first package
+## Packages
+
+### osu-winello
+
+osu! stable via [osu-winello](https://github.com/NelloKudo/osu-winello), split into:
+
+- `osu-winello` — launcher, yawl, MIME/handlers
+- `wine-osu-winello` — patched wine-osu (`/opt/wine-osu`)
+- `osu-winello-prefix` — prebuilt Wineprefix template
+
+```bash
+sudo pacman -Syu osu-winello
+osu-winello    # first-time setup (as your user)
+osu-wine       # play
+```
+
+See [packages/osu-winello/README.md](packages/osu-winello/README.md).
+
+## Adding packages
 
 ```bash
 mkdir -p packages/hello-world
