@@ -46,7 +46,9 @@ jobs:
             echo "Add the armored private key (Settings → Secrets and variables → Actions)."
             exit 1
           fi
+          export GPGKEY
           GPGKEY="$(tr -d '[:space:]' < keys/max-arch.keyid)"
+          echo "Using GPGKEY=${GPGKEY}"
           # Write key to a file so multiline armor survives into the container
           umask 077
           printf '%s\n' "${MAX_ARCH_GPG_PRIVATE_KEY}" >.signing-key.asc
@@ -55,7 +57,7 @@ jobs:
             --workdir /src \
             --env PAGES_URL \
             --env FORCE_REBUILD \
-            --env GPGKEY \
+            --env "GPGKEY=${GPGKEY}" \
             --env GNUPGHOME=/home/builder/.gnupg \
             archlinux:base-devel \
             bash -euo pipefail -c '
