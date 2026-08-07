@@ -70,7 +70,10 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
  export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 @@ -212,8 +223,10 @@
-     if [ "$USER" = "root" ]; then InstallError "Please run the script without root"; fi
+-    if [ "$USER" = "root" ]; then InstallError "Please run the script without root"; fi
++    if [ "$(id -u)" -eq 0 ] || [ "$USER" = "root" ]; then
++        InstallError "Please run as your normal user — never as root/sudo"
++    fi
  
      # Checking for previous versions of osu-wine (mine or DiamondBurned's)
 -    if [ -e /usr/bin/osu-wine ]; then Quit "Please uninstall old osu-wine (/usr/bin/osu-wine) before installing!"; fi
@@ -91,6 +94,10 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
 +    if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
 +        Info "Using packaged osu-stable..."
 +        ln -sfn /usr/bin/osu-stable "$BINDIR/osu-stable"
++        # Drop stale launcher from older winello/package names
++        if [ -L "$BINDIR/osu-wine" ] || [ -e "$BINDIR/osu-wine" ]; then
++            rm -f "$BINDIR/osu-wine"
++        fi
 +        mkdir -p "$XDG_DATA_HOME/icons" "$XDG_DATA_HOME/osuconfig"
 +        cp "${SCRDIR}/stuff/osu-wine.png" "$XDG_DATA_HOME/icons/osu-stable.png" && chmod 644 "$XDG_DATA_HOME/icons/osu-stable.png"
 +        rm -rf "$XDG_DATA_HOME/osuconfig/wine-osu"

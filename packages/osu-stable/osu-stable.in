@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ "$(id -u)" -eq 0 ]; then
+  echo "osu-stable: refuse to run as root (userdata would be owned by root)." >&2
+  echo "Run as your normal user — never sudo/osu-stable." >&2
+  exit 1
+fi
+
 export WINELLO_PACKAGED=1
 export WINELLO_ROOT="${WINELLO_ROOT:-/usr/share/osu-stable}"
 export WINE_INSTALL_PATH="${WINE_INSTALL_PATH:-/opt/wine-osu}"

@@ -7,4 +7,3 @@ Icon=osu-stable
 Terminal=false
 Categories=Game;
 StartupWMClass=osu!.exe
-MimeType=x-scheme-handler/osu;application/x-osu-beatmap-archive;application/x-osu-skin-archive;application/x-osu-replay;
