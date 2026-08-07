@@ -61,9 +61,8 @@ prepare() {
 package_wine-osu-stable() {
   pkgdesc='Patched wine-osu (wow64) for osu-stable'
   depends=()
-  provides=('wine-osu' 'wine-osu-winello')
-  conflicts=('wine-osu' 'wine-osu-winello')
-  replaces=('wine-osu-winello')
+  provides=('wine-osu')
+  conflicts=('wine-osu')
   options=('!strip')
 
   install -d "${pkgdir}/opt"
@@ -74,9 +73,6 @@ package_osu-stable-prefix() {
   pkgdesc='Prebuilt Wineprefix template for osu-stable'
   arch=(any)
   depends=('wine-osu-stable')
-  provides=('osu-winello-prefix')
-  conflicts=('osu-winello-prefix')
-  replaces=('osu-winello-prefix')
   options=('!strip')
 
   install -Dm644 "${srcdir}/osu-winello-prefix.tar.xz" \
@@ -110,9 +106,8 @@ package_osu-stable() {
     'opentabletdriver: tablet support'
   )
   install=osu-stable.install
-  provides=('osu-mime' 'osu-winello')
-  conflicts=('osu-mime' 'osu-winello')
-  replaces=('osu-winello')
+  provides=('osu-mime')
+  conflicts=('osu-mime')
 
   local _src="${srcdir}/osu-winello-${_winello_commit}"
   local _share="${pkgdir}/usr/share/osu-stable"
