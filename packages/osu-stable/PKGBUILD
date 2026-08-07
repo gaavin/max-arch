@@ -1,15 +1,15 @@
 # Maintainer: Max Power <me@gavinpower.dev>
-# Upstream: https://github.com/NelloKudo/osu-winello
+# Based on: https://github.com/NelloKudo/osu-winello
 
-pkgbase=osu-winello
+pkgbase=osu-stable
 pkgname=(
-  osu-winello
-  wine-osu-winello
-  osu-winello-prefix
+  osu-stable
+  wine-osu-stable
+  osu-stable-prefix
 )
 pkgver=11.12.1
-pkgrel=3
-pkgdesc='osu! stable on Linux via winello (patched wine-osu + yawl)'
+pkgrel=1
+pkgdesc='osu! stable on Linux (packaged from osu-winello)'
 arch=(x86_64)
 url='https://github.com/NelloKudo/osu-winello'
 license=('GPL-3.0-or-later' 'LGPL-2.1-or-later')
@@ -25,12 +25,12 @@ source=(
   "yawl-${_yawl_ver}::https://github.com/whrvt/yawl/releases/download/v${_yawl_ver}/yawl"
   "osu-winello-prefix.tar.xz::https://github.com/NelloKudo/osu-winello/releases/download/winello-bins/osu-winello-prefix.tar.xz"
   "osu-mime.tar.gz::https://github.com/NelloKudo/osu-winello/releases/download/winello-bins/osu-mime.tar.gz"
-  'osu-wine.desktop'
-  'osu-winello.install'
+  'osu-stable.desktop'
+  'osu-stable.install'
   'arch-packaged-mode.patch'
-  'osu-wine.in'
-  'osuwinello-file-extensions-handler.desktop'
-  'osuwinello-url-handler.desktop'
+  'osu-stable.in'
+  'osu-stable-file-handler.desktop'
+  'osu-stable-url-handler.desktop'
 )
 noextract=(
   'osu-winello-prefix.tar.xz'
@@ -43,12 +43,12 @@ sha256sums=(
   'bb8728d3ee8644d286324cff43cf8eee4c80fd95ead43229298706c2780f0e12'
   '009cfe18c144e16348b1aa7e3b561c793235a8591fb0b2affa5a2acea7682743'
   '8b7b562ce3a196e18b0e7c07518209b41ee74ce5af0473c9528777ebdd05cac5'
-  'bc8f40f669cd0c3c66c257c28fb8ab52821051726674fa46bacbdcbebca29658'
-  '680cfcc2a9791e9fdd419ffe56b00eca70252ce0b36f3b3f6708934e14e90879'
-  '45e4c7ae9ba68ed3ae0d804e0d4d23dc0b7efca8e89da8268467dc1099aa6f75'
-  'f5398cbf741f1b1d3bd8ba4733bff5e7a60faf862b92a8df0fe61c1cd6cb9048'
-  'bf226dcd84d65f6638184c1f391bd6f1eecb832827dc5815c38b1e9ba9cc336c'
-  '00b2923d70ab94796b159258bf9690ca5b6412c76ac723b19c40e3a848809432'
+  '572bdd1ac5a8ee2d2aad571eb1c36ba15ef095b495454a24a0ae6fc36cad7375'
+  '8ffc92add66c6da87117f52650d22bcfa6c67ec10c7056879359f45d12a1d8d6'
+  '99dbc5204607b9b4b9206a788b7032a295ba44420ac9078e40530932e33692a4'
+  'cdd6e412d4a6fe4f41b80cae8ec2d3b40aa8859e007cb0aa01fb97cda5af0a9d'
+  '48714498ff9ab73da91eb5ef3ca580cd448eead7a6688ed168648d5397ffbe91'
+  '3eeaff76d0953711bc523a910fdbc887932235f34efbf7dc8c48773b94708f09'
 )
 
 prepare() {
@@ -58,32 +58,36 @@ prepare() {
   chmod +x osu-wine osu-winello.sh stuff/osu-handler-wine stuff/folderfixosu
 }
 
-package_wine-osu-winello() {
-  pkgdesc='Patched wine-osu (wow64) used by osu-winello'
+package_wine-osu-stable() {
+  pkgdesc='Patched wine-osu (wow64) for osu-stable'
   depends=()
-  provides=('wine-osu')
-  conflicts=('wine-osu')
+  provides=('wine-osu' 'wine-osu-winello')
+  conflicts=('wine-osu' 'wine-osu-winello')
+  replaces=('wine-osu-winello')
   options=('!strip')
 
   install -d "${pkgdir}/opt"
   cp -a "${srcdir}/wine-osu" "${pkgdir}/opt/wine-osu"
 }
 
-package_osu-winello-prefix() {
-  pkgdesc='Prebuilt Wineprefix template for osu-winello'
+package_osu-stable-prefix() {
+  pkgdesc='Prebuilt Wineprefix template for osu-stable'
   arch=(any)
-  depends=('wine-osu-winello')
+  depends=('wine-osu-stable')
+  provides=('osu-winello-prefix')
+  conflicts=('osu-winello-prefix')
+  replaces=('osu-winello-prefix')
   options=('!strip')
 
   install -Dm644 "${srcdir}/osu-winello-prefix.tar.xz" \
-    "${pkgdir}/usr/share/osu-winello/osu-winello-prefix.tar.xz"
+    "${pkgdir}/usr/share/osu-stable/osu-winello-prefix.tar.xz"
 }
 
-package_osu-winello() {
-  pkgdesc='osu! stable installer/launcher (winello) with packaged wine-osu and yawl'
+package_osu-stable() {
+  pkgdesc='osu! stable launcher (based on osu-winello)'
   depends=(
-    'wine-osu-winello'
-    'osu-winello-prefix'
+    'wine-osu-stable'
+    'osu-stable-prefix'
     'bash'
     'curl'
     'wget'
@@ -100,17 +104,18 @@ package_osu-winello() {
   )
   optdepends=(
     'pipewire: recommended low-latency audio'
-    'winetricks: recreate prefix manually (osu-wine --fixprefix)'
+    'winetricks: recreate prefix manually (osu-stable --fixprefix)'
     'gamemode: set PRE_LAUNCH_ARGS=gamemoderun in config'
     'mangohud: set PRE_LAUNCH_ARGS=mangohud in config'
     'opentabletdriver: tablet support'
   )
-  install=osu-winello.install
-  provides=('osu-mime')
-  conflicts=('osu-mime')
+  install=osu-stable.install
+  provides=('osu-mime' 'osu-winello')
+  conflicts=('osu-mime' 'osu-winello')
+  replaces=('osu-winello')
 
   local _src="${srcdir}/osu-winello-${_winello_commit}"
-  local _share="${pkgdir}/usr/share/osu-winello"
+  local _share="${pkgdir}/usr/share/osu-stable"
 
   install -d "${_share}/stuff"
 
@@ -125,21 +130,21 @@ package_osu-winello() {
   install -Dm644 "${_src}/stuff/winello-default.cfg" "${_share}/stuff/winello-default.cfg"
   install -Dm644 "${_src}/stuff/osu-wine.png" "${_share}/stuff/osu-wine.png"
 
-  install -Dm755 "${srcdir}/yawl-${_yawl_ver}" "${pkgdir}/usr/lib/osu-winello/yawl"
+  install -Dm755 "${srcdir}/yawl-${_yawl_ver}" "${pkgdir}/usr/lib/osu-stable/yawl"
 
-  install -Dm755 "${srcdir}/osu-wine.in" "${pkgdir}/usr/bin/osu-wine"
+  install -Dm755 "${srcdir}/osu-stable.in" "${pkgdir}/usr/bin/osu-stable"
 
-  install -Dm644 "${srcdir}/osu-wine.desktop" \
-    "${pkgdir}/usr/share/applications/osu-wine.desktop"
-  install -Dm644 "${srcdir}/osuwinello-file-extensions-handler.desktop" \
-    "${pkgdir}/usr/share/applications/osuwinello-file-extensions-handler.desktop"
-  install -Dm644 "${srcdir}/osuwinello-url-handler.desktop" \
-    "${pkgdir}/usr/share/applications/osuwinello-url-handler.desktop"
+  install -Dm644 "${srcdir}/osu-stable.desktop" \
+    "${pkgdir}/usr/share/applications/osu-stable.desktop"
+  install -Dm644 "${srcdir}/osu-stable-file-handler.desktop" \
+    "${pkgdir}/usr/share/applications/osu-stable-file-handler.desktop"
+  install -Dm644 "${srcdir}/osu-stable-url-handler.desktop" \
+    "${pkgdir}/usr/share/applications/osu-stable-url-handler.desktop"
 
   install -Dm644 "${_src}/stuff/osu-wine.png" \
-    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/osu-wine.png"
+    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/osu-stable.png"
   install -Dm644 "${_src}/stuff/osu-wine.png" \
-    "${pkgdir}/usr/share/pixmaps/osu-wine.png"
+    "${pkgdir}/usr/share/pixmaps/osu-stable.png"
 
   tar -xzf "${srcdir}/osu-mime.tar.gz" -C "${srcdir}"
   install -Dm644 "${srcdir}/osu-mime/osu-file-extensions.xml" \

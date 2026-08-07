@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=osu! (winello handler)
+Name=osu! (stable handler)
 MimeType=application/x-osu-skin-archive;application/x-osu-replay;application/x-osu-beatmap-archive;
-Exec=/usr/bin/osu-wine --osuhandler %f
+Exec=/usr/bin/osu-stable --osuhandler %f
 NoDisplay=true
 StartupNotify=true
-Icon=osu-wine
+Icon=osu-stable

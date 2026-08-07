@@ -2,8 +2,8 @@
 Name=osu!(stable)
 Comment=osu! stable — Rhythm is just a *click* away!
 Type=Application
-Exec=/usr/bin/osu-wine %U
-Icon=osu-wine
+Exec=/usr/bin/osu-stable %U
+Icon=osu-stable
 Terminal=false
 Categories=Game;
 StartupWMClass=osu!.exe

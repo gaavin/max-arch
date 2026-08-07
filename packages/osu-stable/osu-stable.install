@@ -1,7 +1,7 @@
 post_install() {
   update-desktop-database -q >/dev/null 2>&1 || true
   update-mime-database /usr/share/mime >/dev/null 2>&1 || true
-  echo 'osu-winello installed. Run: osu-wine'
+  echo 'osu-stable installed. Run: osu-stable'
 }
 
 post_upgrade() {

@@ -28,14 +28,14 @@ git push
 
 ## Packages
 
-**osu-winello** — osu! stable ([upstream](https://github.com/NelloKudo/osu-winello))
+**osu-stable** — osu! stable
 
 ```bash
-sudo pacman -Syu osu-winello
-osu-wine
+sudo pacman -Syu osu-stable
+osu-stable
 ```
 
-See [packages/osu-winello](packages/osu-winello/).
+See [packages/osu-stable](packages/osu-stable/).
 
 ## Add a package
 
@@ -45,3 +45,12 @@ CI only rebuilds a package when its package-dir fingerprint changes; otherwise i
 binaries from Pages. Force a full rebuild via Actions → Run workflow → force_rebuild.
 
 Unsigned repo (`Optional TrustAll`) — fine for this mirror only.
+
+## Credits
+
+- [NelloKudo/osu-winello](https://github.com/NelloKudo/osu-winello) — osu! stable Linux installer this packaging is based on
+- [NelloKudo/WineBuilder](https://github.com/NelloKudo/WineBuilder) — patched wine-osu builds
+- [whrvt/yawl](https://github.com/whrvt/yawl) — Wine / Steam Runtime launcher
+- [EnderIce2/rpc-bridge](https://github.com/EnderIce2/rpc-bridge) — Discord RPC (on demand)
+- [openglfreak/osu-handler-wine](https://github.com/openglfreak/osu-handler-wine) — beatmap/skin/url handler
+- [ppy](https://osu.ppy.sh/) — osu!
