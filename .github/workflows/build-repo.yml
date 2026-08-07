@@ -35,13 +35,15 @@ jobs:
             --workdir /src \
             archlinux:base-devel \
             bash -euo pipefail -c '
-              pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd wget curl
-              useradd -m -G wheel builder
-              echo "%wheel ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
+              pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd wget curl shadow
+              getent group wheel >/dev/null || groupadd -r wheel
+              id -u builder >/dev/null 2>&1 || useradd -m -G wheel builder
+              echo "builder ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
+              chmod 0440 /etc/sudoers.d/builder
               sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/" /etc/makepkg.conf
               sed -i "s/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -20 -)/" /etc/makepkg.conf || true
-              # Don't chown .git — checkout cleanup needs it writable by the runner.
-              chown -R builder:builder /src/packages /src/scripts
+              mkdir -p /src/repo
+              chown -R builder:builder /src/packages /src/scripts /src/repo
               sudo -u builder bash /src/scripts/build-repo.sh
               chmod -R a+rX /src/repo
             '
