@@ -1,5 +1,6 @@
 # Local build artifacts (published on gh-pages)
 /repo/
+/.repo-cache/
 *.pkg.tar.zst
 *.pkg.tar.xz
 *.pkg.tar.gz

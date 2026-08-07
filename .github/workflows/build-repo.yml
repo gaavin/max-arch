@@ -8,6 +8,11 @@ on:
       - "scripts/**"
       - ".github/workflows/build-repo.yml"
   workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: Rebuild all packages (ignore Pages fingerprints)
+        type: boolean
+        default: false
   schedule:
     - cron: "0 6 * * 1"
 
@@ -29,10 +34,15 @@ jobs:
 
       - name: Build packages inside Arch Linux
         timeout-minutes: 180
+        env:
+          PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          FORCE_REBUILD: ${{ github.event_name == 'workflow_dispatch' && inputs.force_rebuild == true && '1' || '0' }}
         run: |
           docker run --rm \
             --volume "$PWD:/src" \
             --workdir /src \
+            --env PAGES_URL \
+            --env FORCE_REBUILD \
             archlinux:base-devel \
             bash -euo pipefail -c '
               pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd wget curl shadow
@@ -42,9 +52,10 @@ jobs:
               chmod 0440 /etc/sudoers.d/builder
               sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/" /etc/makepkg.conf
               sed -i "s/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -20 -)/" /etc/makepkg.conf || true
-              mkdir -p /src/repo
-              chown -R builder:builder /src/packages /src/scripts /src/repo
-              sudo -u builder bash /src/scripts/build-repo.sh
+              mkdir -p /src/repo /src/.repo-cache
+              chown -R builder:builder /src/packages /src/scripts /src/repo /src/.repo-cache
+              sudo -u builder env PAGES_URL="$PAGES_URL" FORCE_REBUILD="${FORCE_REBUILD:-0}" \
+                bash /src/scripts/build-repo.sh
               chmod -R a+rX /src/repo
             '
 
