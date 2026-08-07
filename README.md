@@ -19,8 +19,6 @@ sudo pacman -Sy
 pacman -Sl max-arch
 ```
 
-Or: `sudo cp pacman-max-arch.conf /etc/pacman.d/max-arch.conf` and `Include` it from `/etc/pacman.conf`.
-
 ## Publish
 
 ```bash
