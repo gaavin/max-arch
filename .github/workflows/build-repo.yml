@@ -6,6 +6,7 @@ on:
     paths:
       - "packages/**"
       - "scripts/**"
+      - "keys/**"
       - ".github/workflows/build-repo.yml"
   workflow_dispatch:
     inputs:
@@ -37,15 +38,26 @@ jobs:
         env:
           PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           FORCE_REBUILD: ${{ github.event_name == 'workflow_dispatch' && inputs.force_rebuild == true && '1' || '0' }}
+          MAX_ARCH_GPG_PRIVATE_KEY: ${{ secrets.MAX_ARCH_GPG_PRIVATE_KEY }}
         run: |
+          set -euo pipefail
+          if [[ -z "${MAX_ARCH_GPG_PRIVATE_KEY}" ]]; then
+            echo "::error::Secret MAX_ARCH_GPG_PRIVATE_KEY is not set"
+            echo "Add the armored private key (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          GPGKEY="$(tr -d '[:space:]' < keys/max-arch.keyid)"
           docker run --rm \
             --volume "$PWD:/src" \
             --workdir /src \
             --env PAGES_URL \
             --env FORCE_REBUILD \
+            --env GPGKEY \
+            --env MAX_ARCH_GPG_PRIVATE_KEY \
+            --env GNUPGHOME=/home/builder/.gnupg \
             archlinux:base-devel \
             bash -euo pipefail -c '
-              pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd wget curl shadow
+              pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd wget curl shadow gnupg
               getent group wheel >/dev/null || groupadd -r wheel
               id -u builder >/dev/null 2>&1 || useradd -m -G wheel builder
               echo "builder ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
@@ -53,8 +65,18 @@ jobs:
               sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/" /etc/makepkg.conf
               sed -i "s/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -20 -)/" /etc/makepkg.conf || true
               mkdir -p /src/repo /src/.repo-cache
-              chown -R builder:builder /src/packages /src/scripts /src/repo /src/.repo-cache
-              sudo -u builder env PAGES_URL="$PAGES_URL" FORCE_REBUILD="${FORCE_REBUILD:-0}" \
+              install -d -m 700 -o builder -g builder /home/builder/.gnupg
+              chown -R builder:builder /src/packages /src/scripts /src/repo /src/.repo-cache /src/keys
+              sudo -u builder env GNUPGHOME=/home/builder/.gnupg bash -euo pipefail -c "
+                printenv MAX_ARCH_GPG_PRIVATE_KEY | gpg --batch --import
+                gpg --batch --list-secret-keys \"\$GPGKEY\" >/dev/null
+              "
+              sudo -u builder env \
+                PAGES_URL="$PAGES_URL" \
+                FORCE_REBUILD="${FORCE_REBUILD:-0}" \
+                GPGKEY="$GPGKEY" \
+                SIGN_PACKAGES=1 \
+                GNUPGHOME=/home/builder/.gnupg \
                 bash /src/scripts/build-repo.sh
               chmod -R a+rX /src/repo
             '
@@ -96,3 +118,4 @@ jobs:
           owner="${{ github.repository_owner }}"
           name="${{ github.event.repository.name }}"
           echo "::notice::pacman Server = https://${owner}.github.io/${name}/\$arch"
+          echo "::notice::public key = https://${owner}.github.io/${name}/max-arch.gpg"

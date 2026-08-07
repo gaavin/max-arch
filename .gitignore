@@ -1,12 +1,18 @@
 # Local build artifacts (published on gh-pages)
 /repo/
 /.repo-cache/
+/.gnupg-ci/
 *.pkg.tar.zst
 *.pkg.tar.xz
 *.pkg.tar.gz
+*.sig
 src/
 pkg/
 .SRCINFO
 *~
 *.log
 .DS_Store
+# Never commit private signing material
+*.asc
+!keys/*.gpg
+signing-secret*

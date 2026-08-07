@@ -1,6 +1,6 @@
 # max-arch
 
-Personal Arch Linux package repo. PKGBUILDs in `packages/`; CI publishes to GitHub Pages.
+Personal Arch Linux package repo. PKGBUILDs in `packages/`; CI publishes signed packages to GitHub Pages.
 
 ```
 Server = https://gaavin.github.io/max-arch/$arch
@@ -8,9 +8,16 @@ Server = https://gaavin.github.io/max-arch/$arch
 
 ## pacman
 
+Import and locally sign the repo key, then add the repository:
+
+```bash
+curl -fsSL https://gaavin.github.io/max-arch/max-arch.gpg | sudo pacman-key --add -
+sudo pacman-key --lsign-key FDEA10C7977894F8E6C5C7DE81E5300762ECD71E
+```
+
 ```ini
 [max-arch]
-SigLevel = Optional TrustAll
+SigLevel = Required
 Server = https://gaavin.github.io/max-arch/$arch
 ```
 
@@ -25,6 +32,9 @@ pacman -Sl max-arch
 git push
 # Settings → Pages → Source: GitHub Actions (once)
 ```
+
+CI signs packages and the repo database with the key in `keys/`. The private key lives only as the
+GitHub Actions secret `MAX_ARCH_GPG_PRIVATE_KEY` (never commit it).
 
 ## Packages
 
@@ -42,9 +52,9 @@ See [packages/osu-stable](packages/osu-stable/).
 Drop a `PKGBUILD` under `packages/<name>/` and push. Local build: `./scripts/build-repo.sh`.
 
 CI only rebuilds a package when its package-dir fingerprint changes; otherwise it reuses
-binaries from Pages. Force a full rebuild via Actions → Run workflow → force_rebuild.
+binaries (and `.sig` files) from Pages. Force a full rebuild via Actions → Run workflow → force_rebuild.
 
-Unsigned repo (`Optional TrustAll`) — fine for this mirror only.
+Local unsigned smoke build: `SIGN_PACKAGES=0 ./scripts/build-repo.sh`.
 
 ## Credits
 
