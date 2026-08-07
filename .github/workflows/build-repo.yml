@@ -47,13 +47,15 @@ jobs:
             exit 1
           fi
           GPGKEY="$(tr -d '[:space:]' < keys/max-arch.keyid)"
+          # Write key to a file so multiline armor survives into the container
+          umask 077
+          printf '%s\n' "${MAX_ARCH_GPG_PRIVATE_KEY}" >.signing-key.asc
           docker run --rm \
             --volume "$PWD:/src" \
             --workdir /src \
             --env PAGES_URL \
             --env FORCE_REBUILD \
             --env GPGKEY \
-            --env MAX_ARCH_GPG_PRIVATE_KEY \
             --env GNUPGHOME=/home/builder/.gnupg \
             archlinux:base-devel \
             bash -euo pipefail -c '
@@ -66,11 +68,13 @@ jobs:
               sed -i "s/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -20 -)/" /etc/makepkg.conf || true
               mkdir -p /src/repo /src/.repo-cache
               install -d -m 700 -o builder -g builder /home/builder/.gnupg
+              chown builder:builder /src/.signing-key.asc
               chown -R builder:builder /src/packages /src/scripts /src/repo /src/.repo-cache /src/keys
-              sudo -u builder env GNUPGHOME=/home/builder/.gnupg bash -euo pipefail -c "
-                printenv MAX_ARCH_GPG_PRIVATE_KEY | gpg --batch --import
-                gpg --batch --list-secret-keys \"\$GPGKEY\" >/dev/null
-              "
+              sudo -u builder env GNUPGHOME=/home/builder/.gnupg GPGKEY="$GPGKEY" \
+                gpg --batch --import /src/.signing-key.asc
+              sudo -u builder env GNUPGHOME=/home/builder/.gnupg GPGKEY="$GPGKEY" \
+                gpg --batch --list-secret-keys "$GPGKEY" >/dev/null
+              rm -f /src/.signing-key.asc
               sudo -u builder env \
                 PAGES_URL="$PAGES_URL" \
                 FORCE_REBUILD="${FORCE_REBUILD:-0}" \
@@ -80,6 +84,7 @@ jobs:
                 bash /src/scripts/build-repo.sh
               chmod -R a+rX /src/repo
             '
+          rm -f .signing-key.asc
 
       - name: Upload repository artifact
         uses: actions/upload-artifact@v4

@@ -16,3 +16,4 @@ pkg/
 *.asc
 !keys/*.gpg
 signing-secret*
+.signing-key.asc
