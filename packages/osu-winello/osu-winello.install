@@ -1,12 +1,6 @@
 post_install() {
   update-desktop-database -q >/dev/null 2>&1 || true
   update-mime-database /usr/share/mime >/dev/null 2>&1 || true
-
-  if [[ -x /usr/lib/osu-winello/yawl && -x /opt/wine-osu/bin/wine ]]; then
-    YAWL_VERBS="make_wrapper=winello;exec=/opt/wine-osu/bin/wine;wineserver=/opt/wine-osu/bin/wineserver" \
-      /usr/lib/osu-winello/yawl >/dev/null 2>&1 || true
-  fi
-
   echo 'osu-winello installed. Run: osu-wine'
 }
 

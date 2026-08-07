@@ -1,6 +1,6 @@
 diff -ruN a/osu-wine b/osu-wine
---- a/osu-wine	2026-08-06 23:50:06.610225384 -0230
-+++ b/osu-wine	2026-08-06 23:50:06.611693665 -0230
+--- a/osu-wine	2026-08-06 23:59:09.108703520 -0230
++++ b/osu-wine	2026-08-06 23:59:09.110127240 -0230
 @@ -21,13 +21,18 @@
  
  set -a
@@ -14,7 +14,7 @@ diff -ruN a/osu-wine b/osu-wine
  export WINEPREFIX="${WINEPREFIX:-$XDG_DATA_HOME/wineprefixes/osu-wineprefix}"
 -export WINE_INSTALL_PATH="${WINE_INSTALL_PATH:-$XDG_DATA_HOME/osuconfig/wine-osu}"
 +if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
-+    export WINE="${WINE:-/usr/lib/osu-winello/yawl-winello}"
++    export WINE="${WINE:-$XDG_DATA_HOME/osuconfig/yawl-winello}"
 +    export WINE_INSTALL_PATH="${WINE_INSTALL_PATH:-/opt/wine-osu}"
 +else
 +    export WINE="${WINE:-$XDG_DATA_HOME/osuconfig/yawl-winello}"
@@ -49,17 +49,19 @@ diff -ruN a/osu-wine b/osu-wine
  }
  
 diff -ruN a/osu-winello.sh b/osu-winello.sh
---- a/osu-winello.sh	2026-08-06 23:50:06.610945284 -0230
-+++ b/osu-winello.sh	2026-08-06 23:50:06.612428655 -0230
-@@ -47,6 +47,16 @@
+--- a/osu-winello.sh	2026-08-06 23:59:09.109421970 -0230
++++ b/osu-winello.sh	2026-08-06 23:59:09.110864131 -0230
+@@ -47,6 +47,18 @@
  # The full path to osu-winello.sh
  SCRPATH="$(realpath "$0")"
  
 +if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
 +    WINELLO_ROOT="${WINELLO_ROOT:-/usr/share/osu-winello}"
 +    export WINE_INSTALL_PATH="${WINE_INSTALL_PATH:-/opt/wine-osu}"
-+    export YAWL_INSTALL_PATH="${YAWL_INSTALL_PATH:-/usr/lib/osu-winello/yawl}"
-+    export WINE="${WINE:-/usr/lib/osu-winello/yawl-winello}"
++    # yawl must create its wrapper in a writable dir (not /usr/lib)
++    _xdgh="${XDG_DATA_HOME:-$HOME/.local/share}"
++    export YAWL_INSTALL_PATH="${YAWL_INSTALL_PATH:-$_xdgh/osuconfig/yawl}"
++    export WINE="${WINE:-$_xdgh/osuconfig/yawl-winello}"
 +    export WINESERVER="${WINESERVER:-${WINE}server}"
 +    PACKAGED_PREFIX="${PACKAGED_PREFIX:-/usr/share/osu-winello/osu-winello-prefix.tar.xz}"
 +    [ -d "$WINELLO_ROOT/stuff" ] && SCRDIR="$WINELLO_ROOT"
@@ -68,7 +70,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  # Exported global variables
  
  export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-@@ -212,8 +222,10 @@
+@@ -212,8 +224,10 @@
      if [ "$USER" = "root" ]; then InstallError "Please run the script without root"; fi
  
      # Checking for previous versions of osu-wine (mine or DiamondBurned's)
@@ -81,7 +83,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
      Info "Welcome to the script! Follow it to install osu! 8)"
  
-@@ -272,6 +284,25 @@
+@@ -272,6 +286,30 @@
  
  # Function to install script files, yawl and Wine-osu
  InstallWine() {
@@ -90,16 +92,21 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
 +    if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
 +        Info "Using packaged winello..."
 +        ln -sfn /usr/bin/osu-wine "$BINDIR/osu-wine"
-+        mkdir -p "$XDG_DATA_HOME/icons"
++        mkdir -p "$XDG_DATA_HOME/icons" "$XDG_DATA_HOME/osuconfig"
 +        cp "${SCRDIR}/stuff/osu-wine.png" "$XDG_DATA_HOME/icons/osu-wine.png" && chmod 644 "$XDG_DATA_HOME/icons/osu-wine.png"
 +        rm -rf "$XDG_DATA_HOME/osuconfig/wine-osu"
 +        ln -sfn /opt/wine-osu "$XDG_DATA_HOME/osuconfig/wine-osu"
 +        LASTWINEVERSION="$WINEVERSION"
 +        echo "$LASTWINEVERSION" >"$XDG_DATA_HOME/osuconfig/wineverupdate"
-+        if [ ! -x /usr/lib/osu-winello/yawl-winello ]; then
-+            YAWL_VERBS="make_wrapper=winello;exec=$WINE_INSTALL_PATH/bin/wine;wineserver=$WINE_INSTALL_PATH/bin/wineserver"                 "$YAWL_INSTALL_PATH" || InstallError "Couldn't create yawl wrapper."
-+        fi
++
++        # Copy packaged yawl into the user tree so make_wrapper can write yawl-winello.
++        install -Dm755 /usr/lib/osu-winello/yawl "$XDG_DATA_HOME/osuconfig/yawl"
++        export YAWL_INSTALL_PATH="$XDG_DATA_HOME/osuconfig/yawl"
++        export WINE="$XDG_DATA_HOME/osuconfig/yawl-winello"
++        export WINESERVER="${WINE}server"
++        YAWL_VERBS="make_wrapper=winello;exec=$WINE_INSTALL_PATH/bin/wine;wineserver=$WINE_INSTALL_PATH/bin/wineserver"             "$YAWL_INSTALL_PATH" || InstallError "Couldn't create yawl wrapper."
 +        YAWL_VERBS="update;verify;exec=/bin/true" "$YAWL_INSTALL_PATH" || InstallError "yawl Steam Runtime setup failed."
++
 +        ln -sfn "${WINELLO_ROOT:-/usr/share/osu-winello}" "$XDG_DATA_HOME/osuconfig/update"
 +        return 0
 +    fi
@@ -107,7 +114,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
      # Installing game launcher and related...
      Info "Installing game script:"
      cp "${SCRDIR}/osu-wine" "$BINDIR/osu-wine" && chmod +x "$BINDIR/osu-wine"
-@@ -375,7 +406,11 @@
+@@ -375,7 +413,11 @@
          # Downloading prefix in temporary ~/.winellotmp folder
          # to make up for this issue: https://github.com/NelloKudo/osu-winello/issues/36
          mkdir -p "$HOME/.winellotmp"
@@ -120,7 +127,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
          # Checking whether to create prefix manually or install it from repos
          if [ "$failprefix" = "true" ]; then
-@@ -537,7 +572,11 @@
+@@ -537,7 +579,11 @@
  
      Info "Downloading prefix.. this might take a while."
      mkdir -p "$HOME/.winellotmp"
@@ -133,7 +140,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
      Info "Extracting prefix.."
      tar -xf "$HOME/.winellotmp/osu-winello-prefix.tar.xz" -C "$XDG_DATA_HOME/wineprefixes" || { rm -rf "$HOME/.winellotmp" && return 1; }
-@@ -654,18 +693,24 @@
+@@ -654,18 +700,24 @@
      [ -r "$XDG_DATA_HOME/osuconfig/wineverupdate" ] && LASTWINEVERSION=$(</"$XDG_DATA_HOME/osuconfig/wineverupdate")
  
      if [ "$LASTWINEVERSION" \!= "$WINEVERSION" ]; then
@@ -169,7 +176,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
      else
          Info "Your Wine-osu is already up-to-date!"
      fi
-@@ -939,6 +984,13 @@
+@@ -939,6 +991,13 @@
  osuHandlerSetup() {
      Info "Configuring osu-mime and osu-handler..."
  

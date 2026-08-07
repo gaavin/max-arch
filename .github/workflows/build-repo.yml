@@ -40,7 +40,8 @@ jobs:
               echo "%wheel ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
               sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/" /etc/makepkg.conf
               sed -i "s/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -20 -)/" /etc/makepkg.conf || true
-              chown -R builder:builder /src
+              # Don't chown .git — checkout cleanup needs it writable by the runner.
+              chown -R builder:builder /src/packages /src/scripts
               sudo -u builder bash /src/scripts/build-repo.sh
               chmod -R a+rX /src/repo
             '
