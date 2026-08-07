@@ -1,10 +1,5 @@
 # Maintainer: Max Power <me@gavinpower.dev>
 # Upstream: https://github.com/NelloKudo/osu-winello
-#
-# Split packages:
-#   wine-osu-winello   — patched wine-osu (wow64) → /opt/wine-osu
-#   osu-winello-prefix — prebuilt Wineprefix template
-#   osu-winello        — launcher, yawl, MIME/handlers, setup scripts
 
 pkgbase=osu-winello
 pkgname=(
@@ -13,14 +8,13 @@ pkgname=(
   osu-winello-prefix
 )
 pkgver=11.12.1
-pkgrel=1
+pkgrel=2
 pkgdesc='osu! stable on Linux via winello (patched wine-osu + yawl)'
 arch=(x86_64)
 url='https://github.com/NelloKudo/osu-winello'
 license=('GPL-3.0-or-later' 'LGPL-2.1-or-later')
 options=(!strip)
 
-# Upstream wine-osu tag (MAJOR.MINOR-PATCH) → pkgver with dots
 _wine_tag=11.12-1
 _yawl_ver=0.8.2
 _winello_commit=c7dde4db31889c037d63d9de1722725423de8bf6
@@ -35,7 +29,6 @@ source=(
   'osu-winello.install'
   'arch-packaged-mode.patch'
   'osu-wine.in'
-  'osu-winello.in'
   'osuwinello-file-extensions-handler.desktop'
   'osuwinello-url-handler.desktop'
 )
@@ -51,10 +44,9 @@ sha256sums=(
   '009cfe18c144e16348b1aa7e3b561c793235a8591fb0b2affa5a2acea7682743'
   '8b7b562ce3a196e18b0e7c07518209b41ee74ce5af0473c9528777ebdd05cac5'
   'bc8f40f669cd0c3c66c257c28fb8ab52821051726674fa46bacbdcbebca29658'
-  '8442031bfb49dad7b894c4050ccaa461594fc7d97ccdca41ea0b768957016237'
-  '91b86d56ffb80a03842e0ff67439d6fd2cb4950d064667b9b5c35d64f44395eb'
-  '0626d124085e711d19343f7ed90ff15fb0c051c7b7aa90dd67a044a7b9b84705'
-  '761fcb7278a25f0d23482f36984567b8e259b89e224876f127a8a81c143ce1dd'
+  '7b9b496a883bbaea901879a19205951e2e3519197e02c5982d8d2854c8052909'
+  'c82f5906d4d22a4252d3e11d8cfde1b8b76799823996250f66657fd1664cc3f4'
+  '60972bcf78b79db51e9bd1ea52df40d98e2154a39ac187bb2f095e73b4a8cb8d'
   'bf226dcd84d65f6638184c1f391bd6f1eecb832827dc5815c38b1e9ba9cc336c'
   '00b2923d70ab94796b159258bf9690ca5b6412c76ac723b19c40e3a848809432'
 )
@@ -62,10 +54,7 @@ sha256sums=(
 prepare() {
   cd "${srcdir}/osu-winello-${_winello_commit}"
   patch -Np1 -i "${srcdir}/arch-packaged-mode.patch"
-
-  # Prefer distro cabextract over the vendored static binary.
   rm -f stuff/cabextract
-
   chmod +x osu-wine osu-winello.sh stuff/osu-handler-wine stuff/folderfixosu
 }
 
@@ -139,7 +128,6 @@ package_osu-winello() {
   install -Dm755 "${srcdir}/yawl-${_yawl_ver}" "${pkgdir}/usr/lib/osu-winello/yawl"
 
   install -Dm755 "${srcdir}/osu-wine.in" "${pkgdir}/usr/bin/osu-wine"
-  install -Dm755 "${srcdir}/osu-winello.in" "${pkgdir}/usr/bin/osu-winello"
 
   install -Dm644 "${srcdir}/osu-wine.desktop" \
     "${pkgdir}/usr/share/applications/osu-wine.desktop"

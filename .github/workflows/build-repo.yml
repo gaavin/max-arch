@@ -39,7 +39,6 @@ jobs:
               useradd -m -G wheel builder
               echo "%wheel ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
               sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/" /etc/makepkg.conf
-              # Large binary packages (wine-osu / wineprefix)
               sed -i "s/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -20 -)/" /etc/makepkg.conf || true
               chown -R builder:builder /src
               sudo -u builder bash /src/scripts/build-repo.sh

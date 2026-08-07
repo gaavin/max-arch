@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Arch packaging wrapper for osu-winello
+set -euo pipefail
+
 export WINELLO_PACKAGED=1
 export WINELLO_ROOT="${WINELLO_ROOT:-/usr/share/osu-winello}"
 export WINE_INSTALL_PATH="${WINE_INSTALL_PATH:-/opt/wine-osu}"
@@ -7,15 +8,29 @@ export YAWL_INSTALL_PATH="${YAWL_INSTALL_PATH:-/usr/lib/osu-winello/yawl}"
 export WINE="${WINE:-/usr/lib/osu-winello/yawl-winello}"
 export WINESERVER="${WINESERVER:-${WINE}server}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export BINDIR="${BINDIR:-$HOME/.local/bin}"
 
-# Keep a stable "update" tree for upstream script assumptions (read-only package tree).
 mkdir -p "$XDG_DATA_HOME/osuconfig"
 if [ ! -e "$XDG_DATA_HOME/osuconfig/update" ]; then
   ln -sfn "$WINELLO_ROOT" "$XDG_DATA_HOME/osuconfig/update"
 elif [ -d "$XDG_DATA_HOME/osuconfig/update/.git" ]; then
-  # Prefer packaged scripts over an old git clone from a manual install.
   rm -rf "$XDG_DATA_HOME/osuconfig/update"
   ln -sfn "$WINELLO_ROOT" "$XDG_DATA_HOME/osuconfig/update"
+fi
+
+winello_needs_setup() {
+  [ ! -r "$XDG_DATA_HOME/wineprefixes/osu-wineprefix/system.reg" ] && return 0
+  [ ! -r "$XDG_DATA_HOME/osuconfig/osupath" ] && return 0
+  return 1
+}
+
+if winello_needs_setup; then
+  echo -e '\033[1;34mWinello:\033[0m First run — setting up...'
+  bash "$WINELLO_ROOT/osu-winello.sh"
+  if winello_needs_setup; then
+    echo -e '\033[1;31mWinello:\033[0m Setup failed.' >&2
+    exit 1
+  fi
 fi
 
 exec bash "$WINELLO_ROOT/osu-wine" "$@"

@@ -1,4 +1,4 @@
-# Local build artifacts (binaries are published on the gh-pages branch)
+# Local build artifacts (published on gh-pages)
 /repo/
 *.pkg.tar.zst
 *.pkg.tar.xz

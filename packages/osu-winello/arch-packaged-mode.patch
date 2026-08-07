@@ -1,6 +1,6 @@
 diff -ruN a/osu-wine b/osu-wine
---- a/osu-wine	2026-08-06 23:40:37.358369432 -0230
-+++ b/osu-wine	2026-08-06 23:40:37.359778122 -0230
+--- a/osu-wine	2026-08-06 23:50:06.610225384 -0230
++++ b/osu-wine	2026-08-06 23:50:06.611693665 -0230
 @@ -21,13 +21,18 @@
  
  set -a
@@ -24,12 +24,11 @@ diff -ruN a/osu-wine b/osu-wine
  
  export WINETRICKS="${WINETRICKS:-$XDG_DATA_HOME/osuconfig/winetricks}"
  
-@@ -84,6 +89,13 @@
+@@ -84,6 +89,12 @@
  
  # Won't return failure if there's no internet connection, but tries to update the main script first before calling the function
  MainScriptUpdate() {
 +    if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
-+        # Updates come from pacman; keep the packaged tree linked.
 +        mkdir -p "$XDG_DATA_HOME/osuconfig"
 +        ln -sfn "${WINELLO_ROOT:-/usr/share/osu-winello}" "$XDG_DATA_HOME/osuconfig/update"
 +        MainScript "${@:-}"
@@ -38,7 +37,7 @@ diff -ruN a/osu-wine b/osu-wine
      _clone() { GIT_TERMINAL_PROMPT=0 git clone "https://github.com/NelloKudo/osu-winello.git" "$XDG_DATA_HOME/osuconfig/update" --quiet 2>/dev/null; }
      _pull() { GIT_TERMINAL_PROMPT=0 git -C "$XDG_DATA_HOME/osuconfig/update" pull --quiet 2>/dev/null; }
      _reset() { GIT_TERMINAL_PROMPT=0 git -C "$XDG_DATA_HOME/osuconfig/update" reset --hard "${1:-HEAD}" --quiet 2>/dev/null; }
-@@ -108,7 +120,9 @@
+@@ -108,7 +119,9 @@
      [[ "${POST_ARGS[0]}" = exec* ]] && CMD=("exec" "bash") && POST_ARGS=("${POST_ARGS[@]:1}")
      [ -z "${POST_ARGS[*]}" ] && ErrorAndExit "(internal) Missing arguments?"
  
@@ -50,13 +49,12 @@ diff -ruN a/osu-wine b/osu-wine
  }
  
 diff -ruN a/osu-winello.sh b/osu-winello.sh
---- a/osu-winello.sh	2026-08-06 23:40:37.359058162 -0230
-+++ b/osu-winello.sh	2026-08-06 23:40:37.360415472 -0230
-@@ -47,6 +47,20 @@
+--- a/osu-winello.sh	2026-08-06 23:50:06.610945284 -0230
++++ b/osu-winello.sh	2026-08-06 23:50:06.612428655 -0230
+@@ -47,6 +47,16 @@
  # The full path to osu-winello.sh
  SCRPATH="$(realpath "$0")"
  
-+# Arch packaging (WINELLO_PACKAGED=1): prefer system locations
 +if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
 +    WINELLO_ROOT="${WINELLO_ROOT:-/usr/share/osu-winello}"
 +    export WINE_INSTALL_PATH="${WINE_INSTALL_PATH:-/opt/wine-osu}"
@@ -64,16 +62,13 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
 +    export WINE="${WINE:-/usr/lib/osu-winello/yawl-winello}"
 +    export WINESERVER="${WINESERVER:-${WINE}server}"
 +    PACKAGED_PREFIX="${PACKAGED_PREFIX:-/usr/share/osu-winello/osu-winello-prefix.tar.xz}"
-+    # When invoked via /usr/bin wrappers, SCRDIR should be the package share tree
-+    if [ -d "$WINELLO_ROOT/stuff" ]; then
-+        SCRDIR="$WINELLO_ROOT"
-+    fi
++    [ -d "$WINELLO_ROOT/stuff" ] && SCRDIR="$WINELLO_ROOT"
 +fi
 +
  # Exported global variables
  
  export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-@@ -212,8 +226,10 @@
+@@ -212,8 +222,10 @@
      if [ "$USER" = "root" ]; then InstallError "Please run the script without root"; fi
  
      # Checking for previous versions of osu-wine (mine or DiamondBurned's)
@@ -86,34 +81,25 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
      Info "Welcome to the script! Follow it to install osu! 8)"
  
-@@ -272,6 +288,34 @@
+@@ -272,6 +284,25 @@
  
  # Function to install script files, yawl and Wine-osu
  InstallWine() {
 +    mkdir -p "$XDG_DATA_HOME/osuconfig" "$BINDIR"
 +
 +    if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
-+        Info "Using packaged winello layout..."
-+
-+        # Prefer system launcher; keep a convenience symlink in ~/.local/bin when used.
++        Info "Using packaged winello..."
 +        ln -sfn /usr/bin/osu-wine "$BINDIR/osu-wine"
-+
 +        mkdir -p "$XDG_DATA_HOME/icons"
 +        cp "${SCRDIR}/stuff/osu-wine.png" "$XDG_DATA_HOME/icons/osu-wine.png" && chmod 644 "$XDG_DATA_HOME/icons/osu-wine.png"
-+
-+        # Point wine-osu at the packaged /opt build without duplicating ~150MiB in $HOME.
 +        rm -rf "$XDG_DATA_HOME/osuconfig/wine-osu"
 +        ln -sfn /opt/wine-osu "$XDG_DATA_HOME/osuconfig/wine-osu"
 +        LASTWINEVERSION="$WINEVERSION"
 +        echo "$LASTWINEVERSION" >"$XDG_DATA_HOME/osuconfig/wineverupdate"
-+
-+        # yawl lives in /usr/lib/osu-winello; ensure wrapper exists then verify Steam Runtime as the user.
 +        if [ ! -x /usr/lib/osu-winello/yawl-winello ]; then
 +            YAWL_VERBS="make_wrapper=winello;exec=$WINE_INSTALL_PATH/bin/wine;wineserver=$WINE_INSTALL_PATH/bin/wineserver"                 "$YAWL_INSTALL_PATH" || InstallError "Couldn't create yawl wrapper."
 +        fi
 +        YAWL_VERBS="update;verify;exec=/bin/true" "$YAWL_INSTALL_PATH" || InstallError "yawl Steam Runtime setup failed."
-+
-+        # Upstream expects an "update" checkout; use the packaged share tree.
 +        ln -sfn "${WINELLO_ROOT:-/usr/share/osu-winello}" "$XDG_DATA_HOME/osuconfig/update"
 +        return 0
 +    fi
@@ -121,13 +107,12 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
      # Installing game launcher and related...
      Info "Installing game script:"
      cp "${SCRDIR}/osu-wine" "$BINDIR/osu-wine" && chmod +x "$BINDIR/osu-wine"
-@@ -375,7 +419,12 @@
+@@ -375,7 +406,11 @@
          # Downloading prefix in temporary ~/.winellotmp folder
          # to make up for this issue: https://github.com/NelloKudo/osu-winello/issues/36
          mkdir -p "$HOME/.winellotmp"
 -        DownloadFile "${PREFIXLINK}" "$HOME/.winellotmp/osu-winello-prefix.tar.xz" || Revert
 +        if [ "${WINELLO_PACKAGED:-0}" = "1" ] && [ -r "${PACKAGED_PREFIX:-/usr/share/osu-winello/osu-winello-prefix.tar.xz}" ]; then
-+            Info "Using packaged Wineprefix template..."
 +            cp "${PACKAGED_PREFIX:-/usr/share/osu-winello/osu-winello-prefix.tar.xz}" "$HOME/.winellotmp/osu-winello-prefix.tar.xz" || Revert
 +        else
 +            DownloadFile "${PREFIXLINK}" "$HOME/.winellotmp/osu-winello-prefix.tar.xz" || Revert
@@ -135,7 +120,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
          # Checking whether to create prefix manually or install it from repos
          if [ "$failprefix" = "true" ]; then
-@@ -537,7 +586,11 @@
+@@ -537,7 +572,11 @@
  
      Info "Downloading prefix.. this might take a while."
      mkdir -p "$HOME/.winellotmp"
@@ -148,7 +133,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
  
      Info "Extracting prefix.."
      tar -xf "$HOME/.winellotmp/osu-winello-prefix.tar.xz" -C "$XDG_DATA_HOME/wineprefixes" || { rm -rf "$HOME/.winellotmp" && return 1; }
-@@ -654,18 +707,25 @@
+@@ -654,18 +693,24 @@
      [ -r "$XDG_DATA_HOME/osuconfig/wineverupdate" ] && LASTWINEVERSION=$(</"$XDG_DATA_HOME/osuconfig/wineverupdate")
  
      if [ "$LASTWINEVERSION" \!= "$WINEVERSION" ]; then
@@ -161,8 +146,7 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
 -        tar -xf "/tmp/wine-osu-winello-fonts-wow64-$MAJOR.$MINOR-$PATCH-x86_64.tar.xz" -C "$XDG_DATA_HOME/osuconfig"
 -        rm -f "/tmp/wine-osu-winello-fonts-wow64-$MAJOR.$MINOR-$PATCH-x86_64.tar.xz"
 +        if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
-+            Info "Wine-osu is managed by pacman (package: wine-osu-winello)."
-+            Info "Run: sudo pacman -Syu wine-osu-winello"
++            Info "Wine-osu comes from pacman (wine-osu-winello)."
 +            ln -sfn /opt/wine-osu "$XDG_DATA_HOME/osuconfig/wine-osu"
 +            echo "$WINEVERSION" >"$XDG_DATA_HOME/osuconfig/wineverupdate"
 +        else
@@ -185,14 +169,12 @@ diff -ruN a/osu-winello.sh b/osu-winello.sh
      else
          Info "Your Wine-osu is already up-to-date!"
      fi
-@@ -939,6 +999,15 @@
+@@ -939,6 +984,13 @@
  osuHandlerSetup() {
      Info "Configuring osu-mime and osu-handler..."
  
 +    if [ "${WINELLO_PACKAGED:-0}" = "1" ]; then
-+        Info "MIME types and desktop handlers are provided by the osu-winello package."
 +        chmod +x "$XDG_DATA_HOME/osuconfig/update/stuff/osu-handler-wine" 2>/dev/null || true
-+        Info "Setting up file (.osz/.osk) and url associations..."
 +        waitWine regedit /s "$XDG_DATA_HOME/osuconfig/update/stuff/osu-handler.reg"
 +        $okay
 +        return 0
