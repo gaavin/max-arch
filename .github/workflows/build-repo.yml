@@ -1,0 +1,83 @@
+name: Build pacman repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "scripts/**"
+      - ".github/workflows/build-repo.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: arch-repo
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build packages inside Arch Linux
+        run: |
+          docker run --rm \
+            --volume "$PWD:/src" \
+            --workdir /src \
+            archlinux:base-devel \
+            bash -euo pipefail -c '
+              pacman -Syu --noconfirm --needed git base-devel pacman-contrib zstd
+              useradd -m -G wheel builder
+              echo "%wheel ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
+              sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j\$(nproc)\"/" /etc/makepkg.conf
+              chown -R builder:builder /src
+              sudo -u builder bash /src/scripts/build-repo.sh
+              # Keep artifacts readable by the runner user after the container exits.
+              chmod -R a+rX /src/repo
+            '
+
+      - name: Upload repository artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: max-arch-repo
+          path: repo
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download repository artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: max-arch-repo
+          path: repo
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: repo
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Print pacman Server URL
+        run: |
+          owner="${{ github.repository_owner }}"
+          name="${{ github.event.repository.name }}"
+          echo "::notice::pacman Server = https://${owner}.github.io/${name}/\$arch"

@@ -1,0 +1,11 @@
+# Local build artifacts (binaries are published on the gh-pages branch)
+/repo/
+*.pkg.tar.zst
+*.pkg.tar.xz
+*.pkg.tar.gz
+src/
+pkg/
+.SRCINFO
+*~
+*.log
+.DS_Store
